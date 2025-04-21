@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Snake Game</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #222;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+
+    #gameWrapper {
+      position: relative;
+    }
+
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    canvas {
+      border: 2px solid #fff;
+      background-color: #111;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameWrapper">
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('score');
+
+    const gridSize = 20;
+    const tileCount = canvas.width / gridSize;
+
+    let snake = [{ x: 10, y: 10 }];
+    let apple = { x: 15, y: 15 };
+    let dx = 1;
+    let dy = 0;
+    let gameSpeed = 150;
+    let score = 0;
+
+    document.addEventListener('keydown', e => {
+      switch (e.key) {
+        case 'ArrowUp': if (dy === 0) { dx = 0; dy = -1; } break;
+        case 'ArrowDown': if (dy === 0) { dx = 0; dy = 1; } break;
+        case 'ArrowLeft': if (dx === 0) { dx = -1; dy = 0; } break;
+        case 'ArrowRight': if (dx === 0) { dx = 1; dy = 0; } break;
+      }
+    });
+
+    function gameLoop() {
+      const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+      // Wrap around edges
+      head.x = (head.x + tileCount) % tileCount;
+      head.y = (head.y + tileCount) % tileCount;
+
+      // Check self collision
+      if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+        alert("Game Over! Final Score: " + score);
+        resetGame();
+        return;
+      }
+
+      snake.unshift(head);
+
+      // Apple collision
+      if (head.x === apple.x && head.y === apple.y) {
+        score++;
+        scoreDisplay.textContent = `Score: ${score}`;
+        apple = {
+          x: Math.floor(Math.random() * tileCount),
+          y: Math.floor(Math.random() * tileCount)
+        };
+      } else {
+        snake.pop();
+      }
+
+      drawEverything();
+    }
+
+    function drawEverything() {
+      // Clear canvas
+      ctx.fillStyle = '#111';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw apple (as a glossy red circle)
+      const appleX = apple.x * gridSize + gridSize / 2;
+      const appleY = apple.y * gridSize + gridSize / 2;
+      ctx.fillStyle = 'red';
+      ctx.beginPath();
+      ctx.arc(appleX, appleY, gridSize / 2.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Optional shine on apple
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.beginPath();
+      ctx.arc(appleX - 3, appleY - 3, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw snake (rounded green blocks)
+      for (let i = 0; i < snake.length; i++) {
+        ctx.fillStyle = i === 0 ? '#0f0' : '#3f3'; // Brighter head
+        ctx.beginPath();
+        ctx.roundRect(
+          snake[i].x * gridSize + 1,
+          snake[i].y * gridSize + 1,
+          gridSize - 2,
+          gridSize - 2,
+          5
+        );
+        ctx.fill();
+      }
+    }
+
+    // Add roundRect if not supported (for compatibility)
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+        if (typeof radius === 'number') {
+          radius = { tl: radius, tr: radius, br: radius, bl: radius };
+        } else {
+          const defaultRadius = { tl: 0, tr: 0, br: 0, bl: 0 };
+          for (let side in defaultRadius) {
+            radius[side] = radius[side] || defaultRadius[side];
+          }
+        }
+        this.beginPath();
+        this.moveTo(x + radius.tl, y);
+        this.lineTo(x + width - radius.tr, y);
+        this.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+        this.lineTo(x + width, y + height - radius.br);
+        this.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+        this.lineTo(x + radius.bl, y + height);
+        this.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+        this.lineTo(x, y + radius.tl);
+        this.quadraticCurveTo(x, y, x + radius.tl, y);
+        this.closePath();
+      };
+    }
+
+    function resetGame() {
+      snake = [{ x: 10, y: 10 }];
+      dx = 1;
+      dy = 0;
+      score = 0;
+      scoreDisplay.textContent = `Score: ${score}`;
+      apple = {
+        x: Math.floor(Math.random() * tileCount),
+        y: Math.floor(Math.random() * tileCount)
+      };
+    }
+
+    setInterval(gameLoop, gameSpeed);
+  </script>
+</body>
+</html>
